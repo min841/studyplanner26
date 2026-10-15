@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>고등학생 스마트 스터디 플래너</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js for displaying study distribution pie/doughnut chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- FontAwesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 9999px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <header class="bg-indigo-600 text-white shadow-md sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4 py-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+            <div class="flex items-center space-x-3">
+                <div class="bg-white text-indigo-600 p-2.5 rounded-xl shadow-inner font-bold text-xl">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight">고등학생 스마트 스터디 플래너</h1>
+                    <p class="text-xs text-indigo-200">매일 기록하고 과목별 공부 비중을 확인하세요!</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-700/80 px-4 py-2 rounded-xl text-sm font-medium flex items-center gap-2 border border-indigo-500/50">
+                    <i class="fa-regular fa-calendar-days text-indigo-200"></i>
+                    <span id="current-date-display">2026-10-15</span>
+                </div>
+                <button onclick="exportData()" class="bg-indigo-500 hover:bg-indigo-400 text-white px-3 py-2 rounded-xl text-sm font-medium transition shadow-sm flex items-center gap-1.5" title="데이터 백업">
+                    <i class="fa-solid fa-download"></i> <span class="hidden sm:inline">백업</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6 grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Left Column: Date Selector & Quick Stats -->
+        <div class="space-y-6">
+            
+            <!-- Date Picker Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-calendar-day text-indigo-500"></i> 날짜 선택
+                </h2>
+                <input type="date" id="planner-date" class="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" onchange="changeDate()">
+            </div>
+
+            <!-- Daily Weather Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-cloud-sun text-indigo-500"></i> 오늘의 날씨
+                </h2>
+                <div class="space-y-3">
+                    <div class="grid grid-cols-5 gap-1.5">
+                        <button type="button" onclick="setWeather('맑음')" id="w-맑음" class="weather-btn flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-600">
+                            <i class="fa-solid fa-sun text-amber-500 text-lg mb-1"></i>
+                            <span class="text-[11px] font-medium">맑음</span>
+                        </button>
+                        <button type="button" onclick="setWeather('구름조금')" id="w-구름조금" class="weather-btn flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-600">
+                            <i class="fa-solid fa-cloud-sun text-sky-400 text-lg mb-1"></i>
+                            <span class="text-[11px] font-medium">구름</span>
+                        </button>
+                        <button type="button" onclick="setWeather('흐림')" id="w-흐림" class="weather-btn flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-600">
+                            <i class="fa-solid fa-cloud text-slate-400 text-lg mb-1"></i>
+                            <span class="text-[11px] font-medium">흐림</span>
+                        </button>
+                        <button type="button" onclick="setWeather('비')" id="w-비" class="weather-btn flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-600">
+                            <i class="fa-solid fa-cloud-rain text-blue-500 text-lg mb-1"></i>
+                            <span class="text-[11px] font-medium">비</span>
+                        </button>
+                        <button type="button" onclick="setWeather('눈')" id="w-눈" class="weather-btn flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-600">
+                            <i class="fa-solid fa-snowflake text-sky-200 text-lg mb-1"></i>
+                            <span class="text-[11px] font-medium">눈</span>
+                        </button>
+                    </div>
+                    <div class="flex gap-2">
+                        <input type="text" id="weather-temp" oninput="saveWeatherInfo()" placeholder="기온 (예: 18°C)" class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <input type="text" id="weather-memo" oninput="saveWeatherInfo()" placeholder="메모 (예: 일교차 큼)" class="w-1/2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-xs font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Daily Summary Stats Card -->
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-chart-pie text-indigo-500"></i> 과목별 공부 비중
+                </h2>
+                <div class="relative w-full h-48 flex items-center justify-center">
+                    <canvas id="subject-chart"></canvas>
+                </div>
+                <div id="total-time-badge" class="mt-4 pt-3 border-t border-slate-100 flex justify-between items-center text-sm font-semibold text-slate-700">
+                    <span>오늘 총 공부 시간:</span>
+                    <span id="total-hours" class="text-indigo-600 bg-indigo-50 px-3 py-1 rounded-lg text-base">0시간 0분</span>
+                </div>
+            </div>
+
+            <!-- Subject Config Guide -->
+            <div class="bg-gradient-to-br from-indigo-500 to-purple-600 text-white p-5 rounded-2xl shadow-sm">
+                <h3 class="font-bold text-base mb-1 flex items-center gap-2">
+                    <i class="fa-solid fa-lightbulb text-yellow-300"></i> 플래너 100% 활용 팁
+                </h3>
+                <p class="text-xs text-indigo-100 leading-relaxed mt-2">
+                    우측 상단의 '과목 관리' 버튼을 눌러 물리, 화학, 생물 등 원하는 과목으로 자유롭게 커스텀해보세요. 매일 기록하면 원형 차트가 자동으로 분석해줍니다!
+                </p>
+            </div>
+        </div>
+
+        <!-- Right Column: Tasks & Study Logs -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Study Time & Subject Log Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-5 gap-3">
+                    <h2 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-stopwatch text-indigo-500"></i> 과목별 공부 기록
+                    </h2>
+                    <button onclick="openSubjectModal()" class="bg-indigo-50 hover:bg-indigo-100 text-indigo-600 text-xs font-semibold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-gear"></i> 과목 관리
+                    </button>
+                </div>
+
+                <!-- Add Study Record Form -->
+                <form id="study-form" onsubmit="addStudyRecord(event)" class="grid grid-cols-1 sm:grid-cols-12 gap-3 mb-6 bg-slate-50 p-4 rounded-xl border border-slate-200/60">
+                    <div class="sm:col-span-4">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">과목 선택</label>
+                        <select id="record-subject" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <!-- Dynamically populated subjects -->
+                        </select>
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">공부 시간 (분)</label>
+                        <input type="number" id="record-minutes" min="1" max="1440" placeholder="예: 60" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="sm:col-span-4">
+                        <label class="block text-xs font-medium text-slate-500 mb-1">학습 내용 (단원/교재)</label>
+                        <input type="text" id="record-content" placeholder="예: 수학의 정석 미적분 3단원" class="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div class="sm:col-span-1 flex items-end">
+                        <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 rounded-lg transition flex items-center justify-center shadow-sm">
+                            <i class="fa-solid fa-plus"></i>
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Study Records List -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-100 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                                <th class="pb-3 px-3">과목</th>
+                                <th class="pb-3 px-3">학습 내용</th>
+                                <th class="pb-3 px-3">시간</th>
+                                <th class="pb-3 px-3 text-right">관리</th>
+                            </tr>
+                        </thead>
+                        <tbody id="records-table-body" class="divide-y divide-slate-100 text-sm">
+                            <!-- Dynamic records -->
+                        </tbody>
+                    </table>
+                </div>
+                <div id="no-records" class="hidden text-center py-8 text-slate-400 text-sm">
+                    오늘 기록된 공부가 없습니다. 위에서 공부 기록을 추가해보세요!
+                </div>
+            </div>
+
+            <!-- Daily To-Do List Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-list-check text-indigo-500"></i> 오늘의 할 일 (To-Do List)
+                </h2>
+
+                <form onsubmit="addToDo(event)" class="flex gap-3 mb-5">
+                    <input type="text" id="todo-input" placeholder="오늘 꼭 끝내야 할 할 일을 입력하세요..." class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition" required>
+                    <button type="submit" class="bg-slate-900 hover:bg-slate-800 text-white font-medium px-5 py-2.5 rounded-xl transition text-sm flex items-center gap-2 shadow-sm">
+                        <i class="fa-solid fa-plus"></i> 추가
+                    </button>
+                </form>
+
+                <div id="todo-list" class="space-y-2.5">
+                    <!-- Dynamic To-Dos -->
+                </div>
+                <div id="no-todos" class="hidden text-center py-6 text-slate-400 text-sm">
+                    등록된 할 일이 없습니다. 오늘 목표를 설정해 보세요!
+                </div>
+            </div>
+
+            <!-- Daily Reflection / Memo Section -->
+            <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+                <h2 class="text-lg font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <i class="fa-solid fa-pen-nib text-indigo-500"></i> 오늘의 한줄 피드백 & 반성
+                </h2>
+                <textarea id="daily-memo" rows="3" oninput="saveMemo()" placeholder="오늘 공부하면서 느낀점, 부족했던 점, 내일 보완할 점을 적어보세요..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-4 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition resize-none"></textarea>
+            </div>
+
+        </div>
+
+    </main>
+
+    <!-- Subject Modal -->
+    <div id="subject-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-xl transform transition-all">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-bold text-slate-800">과목 관리 (물리학, 화학 등 자유 설정)</h3>
+                <button onclick="closeSubjectModal()" class="text-slate-400 hover:text-slate-600 text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 mb-4">플래너에서 사용할 과목명을 수정하거나, 새로운 과목을 추가/삭제할 수 있습니다.</p>
+            
+            <form onsubmit="addSubject(event)" class="flex gap-2 mb-4">
+                <input type="text" id="new-subject-name" placeholder="새 과목 이름 (예: 물리학I, 화학I)" class="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2 text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">추가</button>
+            </form>
+
+            <div id="subject-list-modal" class="space-y-2.5 max-h-56 overflow-y-auto mb-6 pr-1">
+                <!-- Subject items -->
+            </div>
+
+            <div class="flex justify-end">
+                <button onclick="closeSubjectModal()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-sm font-medium transition">저장 및 닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Record Modal -->
+    <div id="edit-record-modal" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center hidden p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl">
+            <h3 class="text-lg font-bold text-slate-800 mb-4">공부 기록 수정</h3>
+            <input type="hidden" id="edit-record-id">
+            <div class="space-y-3 mb-5">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">과목</label>
+                    <select id="edit-record-subject" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">공부 시간 (분)</label>
+                    <input type="number" id="edit-record-minutes" min="1" max="1440" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 mb-1">학습 내용</label>
+                    <input type="text" id="edit-record-content" class="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm font-medium text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeEditModal()" class="bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-xl text-sm font-medium transition">취소</button>
+                <button onclick="saveEditedRecord()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let subjects = JSON.parse(localStorage.getItem('studyPlannerSubjects')) || [
+            { id: 'sub-1', name: '국어', color: '#f43f5e' },
+            { id: 'sub-2', name: '수학', color: '#3b82f6' },
+            { id: 'sub-3', name: '영어', color: '#10b981' },
+            { id: 'sub-4', name: '물리학I', color: '#f59e0b' },
+            { id: 'sub-5', name: '화학I', color: '#8b5cf6' },
+            { id: 'sub-6', name: '생명과학I', color: '#06b6d4' },
+            { id: 'sub-7', name: '한국사', color: '#64748b' }
+        ];
+
+        let studyData = JSON.parse(localStorage.getItem('studyPlannerData')) || {};
+        let currentDateStr = '';
+        let chartInstance = null;
+
+        window.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            currentDateStr = `${year}-${month}-${day}`;
+
+            const datePicker = document.getElementById('planner-date');
+            datePicker.value = currentDateStr;
+
+            updateDateDisplay();
+            renderSubjectOptions();
+            renderSubjectListModal();
+            loadDayData();
+            initChart();
+            updateChart();
+        });
+
+        function changeDate() {
+            const datePicker = document.getElementById('planner-date');
+            currentDateStr = datePicker.value;
+            updateDateDisplay();
+            loadDayData();
+            updateChart();
+        }
+
+        function updateDateDisplay() {
+            const [y, m, d] = currentDateStr.split('-');
+            document.getElementById('current-date-display').innerText = `${y}년 ${parseInt(m)}월 ${parseInt(d)}일`;
+        }
+
+        function getTodayStorage() {
+            if (!studyData[currentDateStr]) {
+                studyData[currentDateStr] = {
+                    records: [],
+                    todos: [],
+                    memo: '',
+                    weather: { condition: '', temp: '', memo: '' }
+                };
+            }
+            if (!studyData[currentDateStr].weather) {
+                studyData[currentDateStr].weather = { condition: '', temp: '', memo: '' };
+            }
+            return studyData[currentDateStr];
+        }
+
+        function saveData() {
+            localStorage.setItem('studyPlannerData', JSON.stringify(studyData));
+        }
+
+        function saveSubjects() {
+            localStorage.setItem('studyPlannerSubjects', JSON.stringify(subjects));
+        }
+
+        // --- Weather Logic ---
+        function setWeather(condition) {
+            const dayData = getTodayStorage();
+            if (dayData.weather.condition === condition) {
+                dayData.weather.condition = '';
+            } else {
+                dayData.weather.condition = condition;
+            }
+            saveData();
+            renderWeatherUI();
+        }
+
+        function saveWeatherInfo() {
+            const dayData = getTodayStorage();
+            dayData.weather.temp = document.getElementById('weather-temp').value;
+            dayData.weather.memo = document.getElementById('weather-memo').value;
+            saveData();
+        }
+
+        function renderWeatherUI() {
+            const dayData = getTodayStorage();
+            const cond = dayData.weather.condition || '';
+            
+            document.querySelectorAll('.weather-btn').forEach(btn => {
+                const type = btn.id.replace('w-', '');
+                if (type === cond) {
+                    btn.className = "weather-btn flex flex-col items-center justify-center p-2 rounded-xl border border-indigo-500 bg-indigo-50 transition text-indigo-700 shadow-sm";
+                } else {
+                    btn.className = "weather-btn flex flex-col items-center justify-center p-2 rounded-xl border border-slate-200 hover:border-indigo-500 hover:bg-indigo-50/50 transition text-slate-600";
+                }
+            });
+
+            document.getElementById('weather-temp').value = dayData.weather.temp || '';
+            document.getElementById('weather-memo').value = dayData.weather.memo || '';
+        }
+
+        // --- Subject Modal & Management ---
+        function openSubjectModal() {
+            document.getElementById('subject-modal').classList.remove('hidden');
+            renderSubjectListModal();
+        }
+
+        function closeSubjectModal() {
+            document.getElementById('subject-modal').classList.add('hidden');
+        }
+
+        function renderSubjectListModal() {
+            const container = document.getElementById('subject-list-modal');
+            container.innerHTML = '';
+            subjects.forEach(sub => {
+                const item = document.createElement('div');
+                item.className = 'flex justify-between items-center bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-sm gap-2';
+                item.innerHTML = `
+                    <div class="flex items-center gap-2.5 flex-1">
+                        <input type="color" value="${sub.color}" onchange="updateSubjectColor('${sub.id}', this.value)" class="w-6 h-6 rounded cursor-pointer border-0 bg-transparent" title="색상 변경">
+                        <input type="text" value="${sub.name}" onchange="updateSubjectName('${sub.id}', this.value)" class="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-sm font-medium text-slate-700 flex-1 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    </div>
+                    ${subjects.length > 1 ? `<button onclick="deleteSubject('${sub.id}')" class="text-rose-500 hover:text-rose-700 text-xs px-2.5 py-1.5 rounded-lg hover:bg-rose-50 transition"><i class="fa-solid fa-trash"></i></button>` : ''}
+                `;
+                container.appendChild(item);
+            });
+        }
+
+        function updateSubjectName(id, newName) {
+            const trimmed = newName.trim();
+            if (!trimmed) return;
+            const sub = subjects.find(s => s.id === id);
+            if (sub) {
+                sub.name = trimmed;
+                saveSubjects();
+                renderSubjectOptions();
+            }
+        }
+
+        function updateSubjectColor(id, newColor) {
+            const sub = subjects.find(s => s.id === id);
+            if (sub) {
+                sub.color = newColor;
+                saveSubjects();
+                updateChart();
+            }
+        }
+
+        function addSubject(e) {
+            e.preventDefault();
+            const input = document.getElementById('new-subject-name');
+            const name = input.value.trim();
+            if (!name) return;
+
+            const colors = ['#ec4899', '#6366f1', '#14b8a6', '#f97316', '#06b6d4', '#84cc16', '#e11d48'];
+            const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+            subjects.push({
+                id: 'sub-' + Date.now(),
+                name: name,
+                color: randomColor
+            });
+
+            saveSubjects();
+            input.value = '';
+            renderSubjectListModal();
+            renderSubjectOptions();
+        }
+
+        function deleteSubject(id) {
+            subjects = subjects.filter(s => s.id !== id);
+            saveSubjects();
+            renderSubjectListModal();
+            renderSubjectOptions();
+        }
+
+        function renderSubjectOptions() {
+            const select = document.getElementById('record-subject');
+            select.innerHTML = '';
+            subjects.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub.name;
+                opt.textContent = sub.name;
+                select.appendChild(opt);
+            });
+        }
+
+        // --- Study Records Logic ---
+        function addStudyRecord(e) {
+            e.preventDefault();
+            const subject = document.getElementById('record-subject').value;
+            const minutes = parseInt(document.getElementById('record-minutes').value);
+            const content = document.getElementById('record-content').value.trim();
+
+            if (!subject || isNaN(minutes) || !content) return;
+
+            const dayData = getTodayStorage();
+            dayData.records.push({
+                id: Date.now(),
+                subject,
+                minutes,
+                content
+            });
+
+            saveData();
+            document.getElementById('record-minutes').value = '';
+            document.getElementById('record-content').value = '';
+
+            loadDayData();
+            updateChart();
+        }
+
+        function deleteRecord(id) {
+            const dayData = getTodayStorage();
+            dayData.records = dayData.records.filter(r => r.id !== id);
+            saveData();
+            loadDayData();
+            updateChart();
+        }
+
+        function openEditModal(id) {
+            const dayData = getTodayStorage();
+            const record = dayData.records.find(r => r.id === id);
+            if (!record) return;
+
+            document.getElementById('edit-record-id').value = record.id;
+            document.getElementById('edit-record-minutes').value = record.minutes;
+            document.getElementById('edit-record-content').value = record.content;
+
+            const select = document.getElementById('edit-record-subject');
+            select.innerHTML = '';
+            subjects.forEach(sub => {
+                const opt = document.createElement('option');
+                opt.value = sub.name;
+                opt.textContent = sub.name;
+                if (sub.name === record.subject) opt.selected = true;
+                select.appendChild(opt);
+            });
+
+            document.getElementById('edit-record-modal').classList.remove('hidden');
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-record-modal').classList.add('hidden');
+        }
+
+        function saveEditedRecord() {
+            const id = parseInt(document.getElementById('edit-record-id').value);
+            const subject = document.getElementById('edit-record-subject').value;
+            const minutes = parseInt(document.getElementById('edit-record-minutes').value);
+            const content = document.getElementById('edit-record-content').value.trim();
+
+            if (!subject || isNaN(minutes) || !content) return;
+
+            const dayData = getTodayStorage();
+            const record = dayData.records.find(r => r.id === id);
+            if (record) {
+                record.subject = subject;
+                record.minutes = minutes;
+                record.content = content;
+                saveData();
+            }
+
+            closeEditModal();
+            loadDayData();
+            updateChart();
+        }
+
+        // --- To-Do List Logic ---
+        function addToDo(e) {
+            e.preventDefault();
+            const input = document.getElementById('todo-input');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const dayData = getTodayStorage();
+            dayData.todos.push({
+                id: Date.now(),
+                text,
+                completed: false
+            });
+
+            saveData();
+            input.value = '';
+            loadDayData();
+        }
+
+        function toggleToDo(id) {
+            const dayData = getTodayStorage();
+            const todo = dayData.todos.find(t => t.id === id);
+            if (todo) {
+                todo.completed = !todo.completed;
+                saveData();
+                loadDayData();
+            }
+        }
+
+        function deleteToDo(id) {
+            const dayData = getTodayStorage();
+            dayData.todos = dayData.todos.filter(t => t.id !== id);
+            saveData();
+            loadDayData();
+        }
+
+        function saveMemo() {
+            const dayData = getTodayStorage();
+            dayData.memo = document.getElementById('daily-memo').value;
+            saveData();
+        }
+
+        // --- Load & Render Day Data ---
+        function loadDayData() {
+            const dayData = getTodayStorage();
+            renderWeatherUI();
+
+            const tbody = document.getElementById('records-table-body');
+            const noRecords = document.getElementById('no-records');
+            tbody.innerHTML = '';
+
+            if (dayData.records.length === 0) {
+                noRecords.classList.remove('hidden');
+            } else {
+                noRecords.classList.add('hidden');
+                dayData.records.forEach(r => {
+                    const subObj = subjects.find(s => s.name === r.subject);
+                    const color = subObj ? subObj.color : '#64748b';
+                    
+                    const hours = Math.floor(r.minutes / 60);
+                    const mins = r.minutes % 60;
+                    const timeStr = hours > 0 ? `${hours}시간 ${mins > 0 ? mins + '분' : ''}` : `${mins}분`;
+
+                    const tr = document.createElement('tr');
+                    tr.className = 'border-b border-slate-50 hover:bg-slate-50/50 transition';
+                    tr.innerHTML = `
+                        <td class="py-3 px-3 font-semibold text-slate-700 flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 rounded-full inline-block" style="background-color: ${color}"></span>
+                            ${r.subject}
+                        </td>
+                        <td class="py-3 px-3 text-slate-600">${r.content}</td>
+                        <td class="py-3 px-3 font-medium text-slate-700">${timeStr}</td>
+                        <td class="py-3 px-3 text-right flex items-center justify-end gap-1">
+                            <button onclick="openEditModal(${r.id})" class="text-slate-300 hover:text-indigo-600 transition px-2 py-1" title="수정">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+                            <button onclick="deleteRecord(${r.id})" class="text-slate-300 hover:text-rose-500 transition px-2 py-1" title="삭제">
+                                <i class="fa-solid fa-trash-can"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            const todoList = document.getElementById('todo-list');
+            const noTodos = document.getElementById('no-todos');
+            todoList.innerHTML = '';
+
+            if (dayData.todos.length === 0) {
+                noTodos.classList.remove('hidden');
+            } else {
+                noTodos.classList.add('hidden');
+                dayData.todos.forEach(t => {
+                    const item = document.createElement('div');
+                    item.className = `flex items-center justify-between p-3 rounded-xl border transition ${t.completed ? 'bg-slate-50 border-slate-100 text-slate-400 line-through' : 'bg-white border-slate-200/80 text-slate-700'}`;
+                    item.innerHTML = `
+                        <div class="flex items-center gap-3 cursor-pointer flex-1" onclick="toggleToDo(${t.id})">
+                            <input type="checkbox" ${t.completed ? 'checked' : ''} class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 cursor-pointer">
+                            <span class="text-sm font-medium">${t.text}</span>
+                        </div>
+                        <button onclick="deleteToDo(${t.id})" class="text-slate-300 hover:text-rose-500 transition px-2">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    `;
+                    todoList.appendChild(item);
+                });
+            }
+
+            document.getElementById('daily-memo').value = dayData.memo || '';
+        }
+
+        // --- Chart Initialization & Update ---
+        function initChart() {
+            const ctx = document.getElementById('subject-chart').getContext('2d');
+            chartInstance = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: [],
+                    datasets: [{
+                        data: [],
+                        backgroundColor: [],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                boxWidth: 10,
+                                font: {
+                                    family: 'Pretendard',
+                                    size: 10
+                                },
+                                padding: 8
+                            }
+                        }
+                    },
+                    cutout: '65%'
+                }
+            });
+        }
+
+        function updateChart() {
+            if (!chartInstance) return;
+
+            const dayData = getTodayStorage();
+            const subjectTotals = {};
+
+            dayData.records.forEach(r => {
+                subjectTotals[r.subject] = (subjectTotals[r.subject] || 0) + r.minutes;
+            });
+
+            const labels = [];
+            const data = [];
+            const backgroundColors = [];
+            let totalMinutes = 0;
+
+            subjects.forEach(sub => {
+                const mins = subjectTotals[sub.name] || 0;
+                if (mins > 0) {
+                    labels.push(sub.name);
+                    data.push(mins);
+                    backgroundColors.push(sub.color);
+                    totalMinutes += mins;
+                }
+            });
+
+            chartInstance.data.labels = labels;
+            chartInstance.data.datasets[0].data = data;
+            chartInstance.data.datasets[0].backgroundColor = backgroundColors;
+            chartInstance.update();
+
+            const totalHours = Math.floor(totalMinutes / 60);
+            const totalMinsRem = totalMinutes % 60;
+            document.getElementById('total-hours').innerText = `${totalHours}시간 ${totalMinsRem}분`;
+        }
+
+        function exportData() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(studyData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `study_planner_backup_${currentDateStr}.json`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+    </script>
+</body>
+</html>
